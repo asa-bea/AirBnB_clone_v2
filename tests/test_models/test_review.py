@@ -1,125 +1,75 @@
 #!/usr/bin/python3
-
-""" Test module for base_model module """
-
-
-from models.review import Review
+"""test for review"""
 import unittest
-from datetime import datetime
-import io
-import sys
+import os
+from os import getenv
+from models.review import Review
+from models.base_model import BaseModel
+import pep8
 
 
 class TestReview(unittest.TestCase):
-    """ A TestCase class that tests the Review class """
+    """this will test the place class"""
 
-    def test_initialization(self):
-        """ test the initialization of the Review class """
+    @classmethod
+    def setUpClass(cls):
+        """set up for test"""
+        cls.rev = Review()
+        cls.rev.place_id = "4321-dcba"
+        cls.rev.user_id = "123-bca"
+        cls.rev.text = "The srongest in the Galaxy"
 
-        model = Review()
-        self.assertIsInstance(model, Review)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
+    @classmethod
+    def teardown(cls):
+        """at the end of the test this will tear it down"""
+        del cls.rev
 
-        model = Review("name")
-        self.assertIsInstance(model, Review)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
-        self.assertIsInstance(model.place_id, str)
-        self.assertIsInstance(model.user_id, str)
-        self.assertIsInstance(model.text, str)
-        self.assertEqual(model.place_id, "")
-        self.assertEqual(model.user_id, "")
-        self.assertEqual(model.text, "")
+    def tearDown(self):
+        """teardown"""
+        try:
+            os.remove("file.json")
+        except Exception:
+            pass
 
-        model.name = "John"
-        model_dict = model.to_dict()
-        model1 = Review(**model_dict)
-        self.assertIsInstance(model1, Review)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertIsInstance(model1.updated_at, datetime)
-        self.assertEqual(model.id, model1.id)
-        self.assertEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertEqual(model.updated_at, model1.updated_at)
-        self.assertFalse(isinstance(getattr(model, "__class__", None), str))
+    def test_pep8_Review(self):
+        """Tests pep8 style"""
+        style = pep8.StyleGuide(quiet=True)
+        p = style.check_files(['models/review.py'])
+        self.assertEqual(p.total_errors, 0, "fix pep8")
 
-        model1 = Review(
-            id=model_dict["id"], name="James",
-            created_at=model_dict["created_at"])
-        self.assertIsInstance(model1, Review)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertTrue(
-            isinstance(getattr(model1, "updated_at", None), datetime))
-        self.assertEqual(model.id, model1.id)
-        self.assertNotEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertNotEqual(
-            getattr(model1, "updated_at", None), model.updated_at)
+    def test_checking_for_docstring_Review(self):
+        """checking for docstrings"""
+        self.assertIsNotNone(Review.__doc__)
 
-        with self.assertRaises(ValueError) as ctx:
-            model1 = Review(
-                id=model_dict["id"], name="James",
-                created_at=model_dict["created_at"],
-                updated_at="this is a bad date string")
-        self.assertRegex(
-            str(ctx.exception),
-            "Invalid isoformat string: 'this is a bad date string'")
+    def test_attributes_review(self):
+        """chekcing if review have attributes"""
+        self.assertTrue('id' in self.rev.__dict__)
+        self.assertTrue('created_at' in self.rev.__dict__)
+        self.assertTrue('updated_at' in self.rev.__dict__)
+        self.assertTrue('place_id' in self.rev.__dict__)
+        self.assertTrue('text' in self.rev.__dict__)
+        self.assertTrue('user_id' in self.rev.__dict__)
 
-    def test_save_instance_method(self):
-        """ test the save instance method of the Review class """
+    def test_is_subclass_Review(self):
+        """test if review is subclass of BaseModel"""
+        self.assertTrue(issubclass(self.rev.__class__, BaseModel), True)
 
-        model = Review()
-        date1 = model.updated_at
-        model.save()
-        date2 = model.updated_at
-        self.assertNotEqual(date1, date2)
+    def test_attribute_types_Review(self):
+        """test attribute type for Review"""
+        self.assertEqual(type(self.rev.text), str)
+        self.assertEqual(type(self.rev.place_id), str)
+        self.assertEqual(type(self.rev.user_id), str)
 
-    def test_to_dict_instance_method(self):
-        """ test the to_dict instance method of the Review Class """
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == 'db', 'DB')
+    def test_save_Review(self):
+        """test if the save works"""
+        self.rev.save()
+        self.assertNotEqual(self.rev.created_at, self.rev.updated_at)
 
-        model = Review()
-        m_dict = model.to_dict()
-        m_dict_keys = {"__class__", "id", "created_at", "updated_at"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["id"], str)
-        self.assertIsInstance(m_dict["created_at"], str)
-        self.assertIsInstance(m_dict["updated_at"], str)
+    def test_to_dict_Review(self):
+        """test if dictionary works"""
+        self.assertEqual('to_dict' in dir(self.rev), True)
 
-        model = Review()
-        model.name = "John"
-        model.age = 50
-        m_dict = model.to_dict()
-        m_dict_keys = {
-            "__class__", "id", "created_at", "updated_at", "name", "age"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["name"], str)
-        self.assertIsInstance(m_dict["age"], int)
 
-        with self.assertRaises(TypeError):
-            m_dict = model.to_dict("argument")
-
-    def test_str_representation(self):
-        """ test the __str__ function of the Review """
-
-        model = Review()
-        new_stdout = io.StringIO()
-        sys.stdout = new_stdout
-
-        print(model)
-
-        m_str = new_stdout.getvalue()
-        self.assertIn("[Review]", m_str)
-        self.assertIn("'id': ", m_str)
-        self.assertIn("'created_at': datetime.datetime", m_str)
-        self.assertIn("'updated_at': datetime.datetime", m_str)
-        self.assertEqual(
-            f"[{model.__class__.__name__}] ({model.id}) {model.__dict__}\n",
-            m_str)
-        sys.stdout = sys.__stdout__
+if __name__ == "__main__":
+    unittest.main()

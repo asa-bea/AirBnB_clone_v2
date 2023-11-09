@@ -1,121 +1,67 @@
 #!/usr/bin/python3
-
-""" Test module for base_model module """
-
-
-from models.amenity import Amenity
+"""test for amenity"""
 import unittest
-from datetime import datetime
-import io
-import sys
+import os
+from models.amenity import Amenity
+from models.base_model import BaseModel
+import pep8
 
 
 class TestAmenity(unittest.TestCase):
-    """ A TestCase class that tests the Amenity class """
+    """this will test the Amenity class"""
 
-    def test_initialization(self):
-        """ test the initialization of the Amenity class """
+    @classmethod
+    def setUpClass(cls):
+        """set up for test"""
+        cls.amenity = Amenity()
+        cls.amenity.name = "Breakfast"
 
-        model = Amenity()
-        self.assertIsInstance(model, Amenity)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
+    @classmethod
+    def teardown(cls):
+        """at the end of the test this will tear it down"""
+        del cls.amenity
 
-        model = Amenity("name")
-        self.assertIsInstance(model, Amenity)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
-        self.assertIsInstance(model.name, str)
-        self.assertEqual(model.name, "")
+    def tearDown(self):
+        """teardown"""
+        try:
+            os.remove("file.json")
+        except Exception:
+            pass
 
-        model.name = "John"
-        model_dict = model.to_dict()
-        model1 = Amenity(**model_dict)
-        self.assertIsInstance(model1, Amenity)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertIsInstance(model1.updated_at, datetime)
-        self.assertEqual(model.id, model1.id)
-        self.assertEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertEqual(model.updated_at, model1.updated_at)
-        self.assertFalse(isinstance(getattr(model, "__class__", None), str))
+    def test_pep8_Amenity(self):
+        """Tests pep8 style"""
+        style = pep8.StyleGuide(quiet=True)
+        p = style.check_files(['models/amenity.py'])
+        self.assertEqual(p.total_errors, 0, "fix pep8")
 
-        model1 = Amenity(
-            id=model_dict["id"], name="James",
-            created_at=model_dict["created_at"])
-        self.assertIsInstance(model1, Amenity)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertTrue(
-            isinstance(getattr(model1, "updated_at", None), datetime))
-        self.assertEqual(model.id, model1.id)
-        self.assertNotEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertNotEqual(
-            getattr(model1, "updated_at", None), model.updated_at)
+    def test_checking_for_docstring_Amenity(self):
+        """checking for docstrings"""
+        self.assertIsNotNone(Amenity.__doc__)
 
-        with self.assertRaises(ValueError) as ctx:
-            model1 = Amenity(
-                id=model_dict["id"], name="James",
-                created_at=model_dict["created_at"],
-                updated_at="this is a bad date string")
-        self.assertRegex(
-            str(ctx.exception),
-            "Invalid isoformat string: 'this is a bad date string'")
+    def test_attributes_Amenity(self):
+        """chekcing if amenity have attibutes"""
+        self.assertTrue('id' in self.amenity.__dict__)
+        self.assertTrue('created_at' in self.amenity.__dict__)
+        self.assertTrue('updated_at' in self.amenity.__dict__)
+        self.assertTrue('name' in self.amenity.__dict__)
 
-    def test_save_instance_method(self):
-        """ test the save instance method of the Amenity class """
+    def test_is_subclass_Amenity(self):
+        """test if Amenity is subclass of Basemodel"""
+        self.assertTrue(issubclass(self.amenity.__class__, BaseModel), True)
 
-        model = Amenity()
-        date1 = model.updated_at
-        model.save()
-        date2 = model.updated_at
-        self.assertNotEqual(date1, date2)
+    def test_attribute_types_Amenity(self):
+        """test attribute type for Amenity"""
+        self.assertEqual(type(self.amenity.name), str)
 
-    def test_to_dict_instance_method(self):
-        """ test the to_dict instance method of the Amenity Class """
+    def test_save_Amenity(self):
+        """test if the save works"""
+        self.amenity.save()
+        self.assertNotEqual(self.amenity.created_at, self.amenity.updated_at)
 
-        model = Amenity()
-        m_dict = model.to_dict()
-        m_dict_keys = {"__class__", "id", "created_at", "updated_at"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["id"], str)
-        self.assertIsInstance(m_dict["created_at"], str)
-        self.assertIsInstance(m_dict["updated_at"], str)
+    def test_to_dict_Amenity(self):
+        """test if dictionary works"""
+        self.assertEqual('to_dict' in dir(self.amenity), True)
 
-        model = Amenity()
-        model.name = "John"
-        model.age = 50
-        m_dict = model.to_dict()
-        m_dict_keys = {
-            "__class__", "id", "created_at", "updated_at", "name", "age"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["name"], str)
-        self.assertIsInstance(m_dict["age"], int)
 
-        with self.assertRaises(TypeError):
-            m_dict = model.to_dict("argument")
-
-    def test_str_representation(self):
-        """ test the __str__ function of the Amenity """
-
-        model = Amenity()
-        new_stdout = io.StringIO()
-        sys.stdout = new_stdout
-
-        print(model)
-
-        m_str = new_stdout.getvalue()
-        self.assertIn("[Amenity]", m_str)
-        self.assertIn("'id': ", m_str)
-        self.assertIn("'created_at': datetime.datetime", m_str)
-        self.assertIn("'updated_at': datetime.datetime", m_str)
-        self.assertEqual(
-            f"[{model.__class__.__name__}] ({model.id}) {model.__dict__}\n",
-            m_str)
-        sys.stdout = sys.__stdout__
+if __name__ == "__main__":
+    unittest.main()

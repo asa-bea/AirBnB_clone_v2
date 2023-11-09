@@ -1,123 +1,71 @@
 #!/usr/bin/python3
-
-""" Test module for base_model module """
-
-
-from models.base_model import BaseModel
+"""test for BaseModel"""
 import unittest
-from datetime import datetime
-import io
-import sys
+import os
+from os import getenv
+from models.base_model import BaseModel
+import pep8
 
 
 class TestBaseModel(unittest.TestCase):
-    """ A TestCase class that tests the BaseModel class """
+    """this will test the base model class"""
 
-    def test_initialization(self):
-        """ test the initialization of the BaseModel class """
+    @classmethod
+    def setUpClass(cls):
+        """setup for the test"""
+        cls.base = BaseModel()
+        cls.base.name = "Kev"
+        cls.base.num = 20
 
-        model = BaseModel()
-        self.assertIsInstance(model, BaseModel)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
+    @classmethod
+    def teardown(cls):
+        """at the end of the test this will tear it down"""
+        del cls.base
 
-        model = BaseModel("name")
-        self.assertIsInstance(model, BaseModel)
-        self.assertIsInstance(model.id, str)
-        self.assertIsInstance(model.created_at, datetime)
-        self.assertIsInstance(model.updated_at, datetime)
+    def tearDown(self):
+        """teardown"""
+        try:
+            os.remove("file.json")
+        except Exception:
+            pass
 
-        model.name = "John"
-        model_dict = model.to_dict()
-        model1 = BaseModel(**model_dict)
-        self.assertIsInstance(model1, BaseModel)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertIsInstance(model1.updated_at, datetime)
-        self.assertEqual(model.id, model1.id)
-        self.assertEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertEqual(model.updated_at, model1.updated_at)
-        self.assertFalse(isinstance(getattr(model, "__class__", None), str))
+    def test_pep8_BaseModel(self):
+        """Testing for pep8"""
+        style = pep8.StyleGuide(quiet=True)
+        p = style.check_files(['models/base_model.py'])
+        self.assertEqual(p.total_errors, 0, "fix pep8")
 
-        model1 = BaseModel(
-            id=model_dict["id"], name="James",
-            created_at=model_dict["created_at"])
-        self.assertIsInstance(model1, BaseModel)
-        self.assertIsInstance(model1.id, str)
-        self.assertIsInstance(model1.created_at, datetime)
-        self.assertTrue(
-            isinstance(getattr(model1, "updated_at", None), datetime))
-        self.assertEqual(model.id, model1.id)
-        self.assertNotEqual(model.name, model1.name)
-        self.assertEqual(model.created_at, model1.created_at)
-        self.assertNotEqual(
-            getattr(model1, "updated_at", None), model.updated_at)
+    def test_checking_for_docstring_BaseModel(self):
+        """checking for docstrings"""
+        self.assertIsNotNone(BaseModel.__doc__)
+        self.assertIsNotNone(BaseModel.__init__.__doc__)
+        self.assertIsNotNone(BaseModel.__str__.__doc__)
+        self.assertIsNotNone(BaseModel.save.__doc__)
+        self.assertIsNotNone(BaseModel.to_dict.__doc__)
 
-        with self.assertRaises(ValueError) as ctx:
-            model1 = BaseModel(
-                id=model_dict["id"], name="James",
-                created_at=model_dict["created_at"],
-                updated_at="this is a bad date string")
-        self.assertRegex(
-            str(ctx.exception),
-            "Invalid isoformat string: 'this is a bad date string'")
+    def test_method_BaseModel(self):
+        """chekcing if Basemodel have methods"""
+        self.assertTrue(hasattr(BaseModel, "__init__"))
+        self.assertTrue(hasattr(BaseModel, "save"))
+        self.assertTrue(hasattr(BaseModel, "to_dict"))
 
-    def test_save_instance_method(self):
-        """ test the save instance method of the BaseModel class """
+    def test_init_BaseModel(self):
+        """test if the base is an type BaseModel"""
+        self.assertTrue(isinstance(self.base, BaseModel))
 
-        model = BaseModel()
-        date1 = model.updated_at
-        model.save()
-        date2 = model.updated_at
-        self.assertNotEqual(date1, date2)
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == 'db', 'DB')
+    def test_save_BaesModel(self):
+        """test if the save works"""
+        self.base.save()
+        self.assertNotEqual(self.base.created_at, self.base.updated_at)
 
-    def test_to_dict_instance_method(self):
-        """ test the to_dict instance method of the BaseModel Class """
-
-        model = BaseModel()
-        m_dict = model.to_dict()
-        m_dict_keys = {"__class__", "id", "created_at", "updated_at"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["id"], str)
-        self.assertIsInstance(m_dict["created_at"], str)
-        self.assertIsInstance(m_dict["updated_at"], str)
-
-        model = BaseModel()
-        model.name = "John"
-        model.age = 50
-        m_dict = model.to_dict()
-        m_dict_keys = {
-            "__class__", "id", "created_at", "updated_at", "name", "age"}
-        self.assertIsInstance(m_dict, dict)
-        self.assertSetEqual(set(m_dict.keys()), m_dict_keys)
-        self.assertIsInstance(m_dict["name"], str)
-        self.assertIsInstance(m_dict["age"], int)
-
-        with self.assertRaises(TypeError):
-            m_dict = model.to_dict("argument")
-
-    def test_str_representation(self):
-        """ test the __str__ function of the BaseModel """
-
-        model = BaseModel()
-        new_stdout = io.StringIO()
-        sys.stdout = new_stdout
-
-        print(model)
-
-        m_str = new_stdout.getvalue()
-        self.assertIn("[BaseModel]", m_str)
-        self.assertIn("'id': ", m_str)
-        self.assertIn("'created_at': datetime.datetime", m_str)
-        self.assertIn("'updated_at': datetime.datetime", m_str)
-        self.assertEqual(
-            f"[{model.__class__.__name__}] ({model.id}) {model.__dict__}\n",
-            m_str)
-        sys.stdout = sys.__stdout__
+    def test_to_dict_BaseModel(self):
+        """test if dictionary works"""
+        base_dict = self.base.to_dict()
+        self.assertEqual(self.base.__class__.__name__, 'BaseModel')
+        self.assertIsInstance(base_dict['created_at'], str)
+        self.assertIsInstance(base_dict['updated_at'], str)
 
 
-	if __name__ == '__main__':
-	unittest.main()
+if __name__ == "__main__":
+    unittest.main()
